@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توليد أيقونة أثر</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 90vw;
+            background: white;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #A67C52;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #8D6E63;
+            transform: translateY(-2px);
+        }
+        .info {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>أيقونة تطبيق أثر</h1>
+    <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+    
+    <div class="controls">
+        <button onclick="downloadIcon('app_icon.png')">تحميل الأيقونة الرئيسية (1024×1024)</button>
+        <button onclick="downloadIcon('app_icon_adaptive.png', true)">تحميل الأيقونة التكيفية (بدون خلفية)</button>
+    </div>
+    
+    <div class="info">
+        <p><strong>التعليمات:</strong></p>
+        <ol style="text-align: right;">
+            <li>اضغط على زر "تحميل الأيقونة الرئيسية" واحفظها في: <code>assets/icons/app_icon.png</code></li>
+            <li>اضغط على زر "تحميل الأيقونة التكيفية" واحفظها في: <code>assets/icons/app_icon_adaptive.png</code></li>
+            <li>ثم شغل الأمر: <code>flutter pub get</code></li>
+            <li>ثم: <code>flutter pub run flutter_launcher_icons</code></li>
+        </ol>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawIcon(withBackground = false) {
+            const size = 1024;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // رسم الخلفية فقط عند الطلب
+            if (withBackground) {
+                ctx.fillStyle = '#A67C52';
+                roundRect(ctx, 0, 0, size, size, 115);
+                ctx.fill();
+            }
+            
+            // رسم رمز الطبقات (layer-group) - أكبر حجماً
+            // لون الأيقونة: ذهبي دائماً
+            ctx.fillStyle = '#A67C52';
+            
+            const centerX = size / 2;
+            const startY = 180;
+            const layerWidth = 700;
+            const layerHeight = 80;
+            const layerGap = 120;
+            
+            // الطبقة العلوية
+            drawLayer(ctx, centerX, startY, layerWidth, layerHeight);
+            
+            // الطبقة الوسطى
+            drawLayer(ctx, centerX, startY + layerGap, layerWidth * 0.9, layerHeight);
+            
+            // الطبقة السفلية
+            drawLayer(ctx, centerX, startY + layerGap * 2, layerWidth * 0.8, layerHeight);
+        }
+
+        function drawLayer(ctx, centerX, y, width, height) {
+            ctx.beginPath();
+            
+            // شكل معين (diamond) يمثل الطبقة
+            ctx.moveTo(centerX, y); // أعلى
+            ctx.lineTo(centerX + width/2, y + height/2); // يمين
+            ctx.lineTo(centerX, y + height); // أسفل
+            ctx.lineTo(centerX - width/2, y + height/2); // يسار
+            ctx.closePath();
+            
+            ctx.fill();
+            
+            // ظل خفيف للعمق
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function downloadIcon(filename, transparent = false) {
+            // رسم الأيقونة بالإعدادات المطلوبة
+            drawIcon(transparent);
+            
+            // تحويل Canvas إلى Blob وتحميله
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+                
+                // رسم الأيقونة مرة أخرى بالخلفية الملونة للعرض
+                drawIcon(false);
+            }, 'image/png');
+        }
+
+        // رسم الأيقونة عند تحميل الصفحة
+        drawIcon();
+    </script>
+</body>
+</html>

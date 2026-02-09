@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // قواعد المستخدمين
+    match /users/{userId} {
+      // السماح بالقراءة لجميع المستخدمين المسجلين
+      allow read: if request.auth != null;
+      
+      // السماح بالكتابة فقط للمستخدم نفسه
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // السماح للمشرفين والمالك بالقراءة والكتابة
+      allow read, write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'rshyizer+1@gmail.com'
+      );
+    }
+    
+    // قواعد الأماكن (Spots)
+    match /spots/{spotId} {
+      // السماح بالقراءة للجميع (حتى الزوار)
+      allow read: if true;
+      
+      // السماح بالإضافة للمستخدمين المسجلين فقط
+      allow create: if request.auth != null;
+      
+      // السماح بالتعديل والحذف لصاحب البوست أو المشرفين
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'rshyizer+1@gmail.com'
+      );
+    }
+    
+    // قواعد التعليقات
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isModerator == true
+      );
+    }
+    
+    // قواعد البلاغات (Reports) - مبسطة
+    match /reports/{reportId} {
+      // السماح بالقراءة للمشرفين والمالك فقط  
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      
+      // السماح بالإضافة لأي مستخدم مسجل - بدون شروط إضافية
+      allow create: if request.auth != null;
+      
+      // السماح بالتحديث للمشرفين والمالك فقط
+      allow update: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      
+      // السماح بالحذف للمشرفين والمالك فقط
+      allow delete: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+    }
+    
+    // قواعد إشعارات المشرفين
+    match /moderator_notifications/{notificationId} {
+      // السماح بالقراءة للمشرفين والمالك فقط
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      
+      // السماح بالكتابة للنظام (عند إضافة بلاغ)
+      allow create: if request.auth != null;
+      
+      // السماح بالتحديث للمشرفين
+      allow update, delete: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+    }
+    
+    // قواعد المشرفين - المالك فقط
+    match /moderators/{email} {
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com'
+      );
+      allow write: if request.auth != null && request.auth.token.email == 'rshyizer+1@gmail.com';
+    }
+    
+    // قواعد الأخطاء البرمجية
+    match /bug_reports/{bugId} {
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      allow delete: if request.auth != null && request.auth.token.email == 'rshyizer+1@gmail.com';
+    }
+    
+    // قواعد المستخدمين المحظورين - المشرفين والمالك فقط
+    match /banned_users/{userId} {
+      // القراءة للمشرفين والمالك فقط
+      allow read: if request.auth != null && (
+        request.auth.token.email == 'rshyizer+1@gmail.com' ||
+        exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
+      );
+      // الكتابة للمالك فقط
+      allow write: if request.auth != null && request.auth.token.email == 'rshyizer+1@gmail.com';
+    }
+    
+    // قواعد رموز التحقق EmailJS
+    match /verification_codes/{email} {
+      // السماح بالقراءة والكتابة لأي شخص مسجل
+      allow read, write: if request.auth != null;
+      // السماح بالإنشاء للجميع (للمستخدمين الجدد)
+      allow create: if true;
+    }
+  }
+}
